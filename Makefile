@@ -1,5 +1,5 @@
 PROG = sample
-CFLAGS = -g -O0 -Wall
+CFLAGS = -g -O2 -Wall
 
 all: ${PROG}
 
