@@ -25,8 +25,8 @@ struct timeval start_time;
 int usage(void)
 {
 	char *message =
-"./sample ip_address:port [ip_address:port ...]\n";
-
+"Usage: ./sample ip_address:port [ip_address:port ...]\n"
+"./sample 192.168.10.16:24 192.168.10.17:24\n";
 	fprintf(stderr, message);
 	return 0;
 }
@@ -79,11 +79,14 @@ int main(int argc, char *argv[])
 	int nfds;
 	struct epoll_event ev, *ev_ret;
 
-	while ( (ch = getopt(argc, argv, "d")) != -1) {
+	while ( (ch = getopt(argc, argv, "dh")) != -1) {
 		switch (ch) {
 			case 'd':
 				debug =1;
 				break;
+            case 'h':
+                usage();
+                exit(0);
 			default:
 				break;
 		}
