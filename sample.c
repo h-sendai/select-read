@@ -14,9 +14,13 @@
 
 #include "my_socket.h"
 #include "host_info.h"
+#include "set_timer.h"
+#include "my_signal.h"
 
 host_info *host_list = NULL;
 int debug = 0;
+volatile sig_atomic_t has_alarm = 0;
+struct timeval start_time;
 
 int usage(void)
 {
@@ -27,6 +31,42 @@ int usage(void)
 	return 0;
 }
 
+void sig_alarm(int signo)
+{
+    has_alarm = 1;
+    return;
+}
+
+int print_status_header()
+{
+    host_info *p;
+    fprintf(stderr, "time ");
+	for (p = host_list; p != NULL; p = p->next) {
+        fprintf(stderr, "%s ", p->ip_address);
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "---------------------------------------------------------\n");
+    return 0;
+}
+
+int print_status()
+{
+    host_info *p;
+    struct timeval now;
+    struct timeval elapse;
+    gettimeofday(&now, NULL);
+    timersub(&now, &start_time, &elapse);
+    fprintf(stderr, "%ld.%06ld ", elapse.tv_sec, elapse.tv_usec);
+	for (p = host_list; p != NULL; p = p->next) {
+        fprintf(stderr, "%d ( %d ) ", p->read_bytes, p->read_count);
+        /* XXX */
+        /* reset counter */
+        p->read_bytes = 0;
+        p->read_count = 0;
+    }
+    fprintf(stderr, "\n");
+    return 0;
+}
 
 int main(int argc, char *argv[])
 {
@@ -73,6 +113,12 @@ int main(int argc, char *argv[])
 		}
 	}
 
+    my_signal(SIGALRM, sig_alarm);
+    set_timer(1, 0, 1, 0);
+    gettimeofday(&start_time, NULL);
+
+    // print_status_header();
+
 	for (p = host_list; p != NULL; p = p->next) {
 		if (connect_tcp(p->sockfd, p->ip_address, p->port) < 0) {
 			errx(1, "connect to %s fail", p->ip_address);
@@ -87,7 +133,9 @@ int main(int argc, char *argv[])
 		err(1, "epoll_create");
 	}
 	for (p = host_list; p != NULL; p = p->next) {
-		fprintf(stderr, "%s port %d\n", p->ip_address, p->port);
+        if (debug) {
+		    fprintf(stderr, "%s port %d\n", p->ip_address, p->port);
+        }
 		memset(&ev, 0, sizeof(ev));
 		ev.events = EPOLLIN;
 		ev.data.ptr = p;
@@ -97,6 +145,10 @@ int main(int argc, char *argv[])
 	}
 
 	for ( ; ; ) {
+        if (has_alarm) {
+            print_status();
+            has_alarm = 0;
+        }
 		nfds = epoll_wait(epfd, ev_ret, n_server, timeout * 1000);
 		if (nfds < 0) {
 			if (errno == EINTR) {

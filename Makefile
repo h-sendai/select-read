@@ -6,6 +6,7 @@ OBJS += $(PROG).o
 OBJS += host_info.o
 OBJS += my_socket.o
 OBJS += set_timer.o
+OBJS += my_signal.o
 
 $(PROG): $(OBJS)
 
