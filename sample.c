@@ -138,10 +138,12 @@ int main(int argc, char *argv[])
 			else {
 				p->read_bytes += n;
 				p->read_count ++;
-				if ((p->read_count % 100) == 0) {
-					fprintf(stderr, "%s port %d: %d bytes\n",
-						p->ip_address, p->port, p->read_bytes);
-				}
+                if (debug) {
+                    if ((p->read_count % 1000) == 0) {
+                        fprintf(stderr, "%s port %d: %d bytes\n",
+                            p->ip_address, p->port, p->read_bytes);
+                    }
+                }
 			}
 		}
 	}
