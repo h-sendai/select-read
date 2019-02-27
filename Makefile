@@ -1,9 +1,13 @@
 PROG = sample
-CFLAGS = -g -O2 -Wall
+CFLAGS += -g -O2 -Wall
 
-all: ${PROG}
+all: $(PROG)
+OBJS += $(PROG).o
+OBJS += host_info.o
+OBJS += my_socket.o
+OBJS += set_timer.o
 
-${PROG}: my_socket.o host_info.o sample.o
+$(PROG): $(OBJS)
 
 clean:
-	rm -f *.o ${PROG}
+	rm -f *.o $(PROG)
