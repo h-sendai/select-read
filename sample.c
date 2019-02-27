@@ -67,14 +67,6 @@ int main(int argc, char *argv[])
 		host_list = addend(host_list, new_host(argv[i]));
 	}
 
-	/* get sockfd and connect to server */
-	//for (p = host_list; p != NULL; p = p->next) {
-	//	if (debug) {
-	//		printf("try to connect: %s Port: %d\n", p->ip_address, p->port);
-	//	}
-	//	connect_to_server(p, timeout);
-	//}
-
 	for (p = host_list; p != NULL; p = p->next) {
 		if ( (p->sockfd = tcp_socket()) < 0) {
 			errx(1, "socket create fail");
