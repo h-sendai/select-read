@@ -16,6 +16,7 @@
 #include "host_info.h"
 #include "set_timer.h"
 #include "my_signal.h"
+#include "get_num.h"
 
 host_info *host_list = NULL;
 int debug = 0;
@@ -79,7 +80,8 @@ int main(int argc, char *argv[])
 	int nfds;
 	struct epoll_event ev, *ev_ret;
 
-	while ( (ch = getopt(argc, argv, "dh")) != -1) {
+    int so_rcvbuf = 0;
+	while ( (ch = getopt(argc, argv, "dhr:")) != -1) {
 		switch (ch) {
 			case 'd':
 				debug =1;
@@ -87,6 +89,9 @@ int main(int argc, char *argv[])
             case 'h':
                 usage();
                 exit(0);
+            case 'r':
+                so_rcvbuf = get_num(optarg);
+                break;
 			default:
 				break;
 		}
@@ -114,6 +119,15 @@ int main(int argc, char *argv[])
 		if ( (p->sockfd = tcp_socket()) < 0) {
 			errx(1, "socket create fail");
 		}
+        if (so_rcvbuf > 0) {
+            if (set_so_rcvbuf(p->sockfd, so_rcvbuf) < 0) {
+                errx(1, "set_so_rcvbuf fail");
+            }
+        }
+        if (debug) {
+            int rcvbuf = get_so_rcvbuf(p->sockfd);
+            fprintf(stderr, "rcvbuf: %d\n", rcvbuf);
+        }
 	}
 
     my_signal(SIGALRM, sig_alarm);
