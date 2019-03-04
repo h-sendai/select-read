@@ -3,6 +3,6 @@ syntax: glob
 *.o
 *.d
 *~
-sample
+epoll-read
 data
 log

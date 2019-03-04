@@ -1,4 +1,4 @@
-PROG = sample
+PROG = epoll-read
 CFLAGS += -g -O2 -Wall
 
 all: $(PROG)
