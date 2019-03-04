@@ -25,8 +25,8 @@ struct timeval start_time;
 int usage(void)
 {
 	char *message =
-"Usage: ./sample ip_address:port [ip_address:port ...]\n"
-"./sample 192.168.10.16:24 192.168.10.17:24\n";
+"Usage: ./epoll-read ip_address:port [ip_address:port ...]\n"
+"./epoll-read 192.168.10.16:24 192.168.10.17:24\n";
 	fprintf(stderr, message);
 	return 0;
 }
