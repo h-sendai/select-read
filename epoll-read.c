@@ -59,7 +59,7 @@ int print_status()
     timersub(&now, &start_time, &elapse);
     fprintf(stderr, "%ld.%06ld ", elapse.tv_sec, elapse.tv_usec);
 
-    int total_read_bytes = 0;
+    long total_read_bytes = 0;
     for (p = host_list; p != NULL; p = p->next) {
         total_read_bytes += p->read_bytes;
         double read_bytes_MB = (double) p->read_bytes / 1024.0 / 1024.0;
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
                 p->read_count ++;
                 if (debug) {
                     if ((p->read_count % 1000) == 0) {
-                        fprintf(stderr, "%s port %d: %d bytes\n",
+                        fprintf(stderr, "%s port %d: %ld bytes\n",
                             p->ip_address, p->port, p->read_bytes);
                     }
                 }

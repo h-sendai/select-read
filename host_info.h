@@ -13,7 +13,7 @@ struct host_info_tag {
 	char *buf;
 	int	  bufsize;
 	int   sockfd;
-	int   read_bytes;
+	long  read_bytes;
 	int   read_count;
 	struct host_info_tag *next;
 };
