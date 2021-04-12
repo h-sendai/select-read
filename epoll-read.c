@@ -59,7 +59,8 @@ int print_status()
     timersub(&now, &start_time, &elapse);
     fprintf(stderr, "%ld.%06ld ", elapse.tv_sec, elapse.tv_usec);
     for (p = host_list; p != NULL; p = p->next) {
-        fprintf(stderr, "%d ( %d ) ", p->read_bytes, p->read_count);
+        double read_bytes_MB = (double) p->read_bytes / 1024.0 / 1024.0;
+        fprintf(stderr, "%.3f ( %d ) ", read_bytes_MB, p->read_count);
         /* XXX */
         /* reset counter */
         p->read_bytes = 0;
