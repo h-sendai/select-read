@@ -1,7 +1,7 @@
 #ifndef _GET_NUM_H
 #define _GET_NUM_H
 
-#define _BSD_SOURCE 1
+// #define _BSD_SOURCE 1
 
 #include <errno.h>
 #include <err.h>
