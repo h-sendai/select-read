@@ -58,7 +58,10 @@ int print_status()
     gettimeofday(&now, NULL);
     timersub(&now, &start_time, &elapse);
     fprintf(stderr, "%ld.%06ld ", elapse.tv_sec, elapse.tv_usec);
+
+    int total_read_bytes = 0;
     for (p = host_list; p != NULL; p = p->next) {
+        total_read_bytes += p->read_bytes;
         double read_bytes_MB = (double) p->read_bytes / 1024.0 / 1024.0;
         fprintf(stderr, "%.3f ( %d ) ", read_bytes_MB, p->read_count);
         /* XXX */
@@ -66,6 +69,7 @@ int print_status()
         p->read_bytes = 0;
         p->read_count = 0;
     }
+    fprintf(stderr, "%.3f", total_read_bytes/1024.0/1024.0);
     fprintf(stderr, "\n");
     return 0;
 }
