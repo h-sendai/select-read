@@ -8,7 +8,7 @@
 
 #include "host_info.h"
 
-host_info *new_host(char *host_and_port)
+host_info *new_host(char *host_and_port, int bufsize)
 {
 	host_info *newp;
 	char *tmp;
@@ -26,7 +26,10 @@ host_info *new_host(char *host_and_port)
 	else {
 		newp->port = DEFAULT_PORT;
 	}
-	newp->bufsize = DEFAULT_BUFSIZE;
+	newp->bufsize = bufsize;
+    if (debug) {
+        printf("bufsize: %d\n", bufsize);
+    }
 	if ( (newp->buf = malloc(newp->bufsize)) == NULL) {
 		perror("malloc_in new_host (for buf)");
 		return NULL;

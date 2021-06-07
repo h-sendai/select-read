@@ -26,7 +26,10 @@ struct timeval start_time;
 int usage(void)
 {
     char *message =
-"Usage: ./epoll-read ip_address:port [ip_address:port ...]\n"
+"Usage: ./epoll-read [-b bufsize] [-r so_rcvbuf] [-d] ip_address:port [ip_address:port ...]\n"
+"       -b bufsize: default 2MB\n"
+"       -d: debug\n"
+"example:\n"
 "./epoll-read 192.168.10.16:24 192.168.10.17:24\n";
     fprintf(stderr, message);
     return 0;
@@ -86,10 +89,14 @@ int main(int argc, char *argv[])
     struct epoll_event ev, *ev_ret;
 
     int so_rcvbuf = 0;
-    while ( (ch = getopt(argc, argv, "dhr:")) != -1) {
+    int bufsize = DEFAULT_BUFSIZE;
+    while ( (ch = getopt(argc, argv, "b:dhr:")) != -1) {
         switch (ch) {
             case 'd':
-                debug =1;
+                debug += 1;
+                break;
+            case 'b':
+                bufsize = get_num(optarg);
                 break;
             case 'h':
                 usage();
@@ -117,7 +124,7 @@ int main(int argc, char *argv[])
         if (debug) {
             printf("%s\n", argv[i]);
         }
-        host_list = addend(host_list, new_host(argv[i]));
+        host_list = addend(host_list, new_host(argv[i], bufsize));
     }
 
     for (p = host_list; p != NULL; p = p->next) {
@@ -204,7 +211,7 @@ int main(int argc, char *argv[])
             else {
                 p->read_bytes += n;
                 p->read_count ++;
-                if (debug) {
+                if (debug > 1) {
                     if ((p->read_count % 1000) == 0) {
                         fprintf(stderr, "%s port %d: %ld bytes\n",
                             p->ip_address, p->port, p->read_bytes);
