@@ -22,6 +22,8 @@ host_info *host_list = NULL;
 int debug = 0;
 volatile sig_atomic_t has_alarm = 0;
 struct timeval start_time;
+long readable_servers = 0;
+long n_wakeup         = 0;
 
 int usage(void)
 {
@@ -73,6 +75,8 @@ int print_status()
         p->read_count = 0;
     }
     fprintf(stderr, "%.3f", total_read_bytes/1024.0/1024.0);
+    double average_readable_servers = (double) readable_servers / (double) n_wakeup;
+    fprintf(stderr, " %6.3f", average_readable_servers);
     fprintf(stderr, "\n");
     return 0;
 }
@@ -177,6 +181,8 @@ int main(int argc, char *argv[])
         if (has_alarm) {
             print_status();
             has_alarm = 0;
+            readable_servers = 0;
+            n_wakeup = 0;
         }
         nfds = epoll_wait(epfd, ev_ret, n_server, timeout * 1000);
         if (nfds < 0) {
@@ -192,6 +198,8 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        n_wakeup += 1;
+        readable_servers += nfds;
         for (i = 0; i < nfds; i++) {
             p = ev_ret[i].data.ptr;
             n = read(p->sockfd, p->buf, p->bufsize);
