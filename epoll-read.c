@@ -28,9 +28,11 @@ long n_wakeup         = 0;
 int usage(void)
 {
     char *message =
-"Usage: ./epoll-read [-b bufsize] [-r so_rcvbuf] [-d] ip_address:port [ip_address:port ...]\n"
+"Usage: ./epoll-read [-b bufsize] [-l lowat] [-r so_rcvbuf] [-d] ip_address:port [ip_address:port ...]\n"
 "       -b bufsize: default 2MB\n"
 "       -d: debug\n"
+"       -l: lowat (default none.  allow suffix k for kilo, m for mega)\n"
+"       -r: so_rcvbuf (set SO_RCVBUF.  allow suffix k  for kilo, m for mega)\n"
 "example:\n"
 "./epoll-read 192.168.10.16:24 192.168.10.17:24\n";
     fprintf(stderr, message);
@@ -93,8 +95,9 @@ int main(int argc, char *argv[])
     struct epoll_event ev, *ev_ret;
 
     int so_rcvbuf = 0;
+    int so_lowat  = 0;
     int bufsize = DEFAULT_BUFSIZE;
-    while ( (ch = getopt(argc, argv, "b:dhr:")) != -1) {
+    while ( (ch = getopt(argc, argv, "b:dhl:r:")) != -1) {
         switch (ch) {
             case 'd':
                 debug += 1;
@@ -105,6 +108,9 @@ int main(int argc, char *argv[])
             case 'h':
                 usage();
                 exit(0);
+            case 'l':
+                so_lowat = get_num(optarg);
+                break;
             case 'r':
                 so_rcvbuf = get_num(optarg);
                 break;
@@ -177,6 +183,14 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (so_lowat > 0) {
+        for (p = host_list; p != NULL; p = p->next) {
+            if (set_so_rcvlowat(p->sockfd, so_lowat) < 0) {
+                exit(1);
+            }
+        }
+    }
+
     for ( ; ; ) {
         if (has_alarm) {
             print_status();
@@ -202,6 +216,9 @@ int main(int argc, char *argv[])
         readable_servers += nfds;
         for (i = 0; i < nfds; i++) {
             p = ev_ret[i].data.ptr;
+            if (debug) { /* SO_RCVLOW Test */
+                fprintf(stderr, "n_wakeup: %ld %d bytes in rcvbuf\n", n_wakeup, get_bytes_in_rcvbuf(p->sockfd));
+            }
             n = read(p->sockfd, p->buf, p->bufsize);
             if (n < 0) {
                 err(1, "read error");
