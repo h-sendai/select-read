@@ -17,6 +17,7 @@
 #include "set_timer.h"
 #include "my_signal.h"
 #include "get_num.h"
+#include "print_command_line.h"
 
 host_info *host_list = NULL;
 int debug = 0;
@@ -97,6 +98,9 @@ int main(int argc, char *argv[])
     int so_rcvbuf = 0;
     int so_lowat  = 0;
     int bufsize = DEFAULT_BUFSIZE;
+
+    print_command_line(stderr, argc, argv);
+
     while ( (ch = getopt(argc, argv, "b:dhl:r:")) != -1) {
         switch (ch) {
             case 'd':

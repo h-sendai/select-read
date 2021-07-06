@@ -8,6 +8,7 @@ OBJS += my_socket.o
 OBJS += set_timer.o
 OBJS += my_signal.o
 OBJS += get_num.o
+OBJS += print_command_line.o
 
 $(PROG): $(OBJS)
 
