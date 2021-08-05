@@ -14,6 +14,7 @@
 
 #include "my_socket.h"
 #include "host_info.h"
+#include "set_cpu.h"
 #include "set_timer.h"
 #include "my_signal.h"
 #include "get_num.h"
@@ -30,8 +31,9 @@ struct timeval prev_time;
 int usage(void)
 {
     char *message =
-"Usage: ./epoll-read [-b bufsize] [-l lowat] [-r so_rcvbuf] [-d] [-i interval_sec] ip_address:port [ip_address:port ...]\n"
+"Usage: ./epoll-read [-b bufsize] [-c cpu_num] [-l lowat] [-r so_rcvbuf] [-d] [-i interval_sec] ip_address:port [ip_address:port ...]\n"
 "       -b bufsize: default 2MB\n"
+"       -c cpu_num: set cpu number\n"
 "       -d: debug\n"
 "       -l: lowat (default none.  allow suffix k for kilo, m for mega)\n"
 "       -r: so_rcvbuf (set SO_RCVBUF.  allow suffix k  for kilo, m for mega)\n"
@@ -104,11 +106,15 @@ int main(int argc, char *argv[])
     int so_lowat  = 0;
     int bufsize = DEFAULT_BUFSIZE;
     char *interval_sec_str = "1.0";
+    int cpu_num = -1;
 
     print_command_line(stderr, argc, argv);
 
-    while ( (ch = getopt(argc, argv, "b:dhi:l:r:")) != -1) {
+    while ( (ch = getopt(argc, argv, "b:c:dhi:l:r:")) != -1) {
         switch (ch) {
+            case 'c':
+                cpu_num = strtol(optarg, NULL, 0);
+                break;
             case 'd':
                 debug += 1;
                 break;
@@ -138,6 +144,12 @@ int main(int argc, char *argv[])
     if (argc == 0) {
         usage();
         exit(1);
+    }
+
+    if (cpu_num != -1) {
+        if (set_cpu(cpu_num) < 0) {
+            exit(1);
+        }
     }
 
     n_server = argc;
