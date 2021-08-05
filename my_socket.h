@@ -36,6 +36,7 @@ extern int get_so_sndbuf(int sockfd);
 extern int set_so_sndbuf(int sockfd, int so_sndbuf);
 extern int get_bytes_in_rcvbuf(int sockfd);
 extern int set_so_nodelay(int sockfd);
+extern int set_so_quickack(int sockfd);
 extern int get_so_rcvlowat(int sockfd);
 extern int set_so_rcvlowat(int sockfd, int lowat);
 

@@ -188,6 +188,7 @@ int set_so_rcvbuf(int sockfd, int so_rcvbuf)
     if (ret_so_rcvbuf != so_rcvbuf) {
 #endif
         warnx("cannot set to %d bytes, but set %d bytes", so_rcvbuf, ret_so_rcvbuf);
+        return -1;
     }
 
     return ret_so_rcvbuf;
@@ -244,6 +245,17 @@ int set_so_nodelay(int sockfd)
     int on = 1;
     if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY , &on, sizeof(on)) < 0) {
         warn("setsockopt nodelay");
+        return -1;
+    }
+
+    return 0;
+}
+
+int set_so_quickack(int sockfd)
+{
+    int on = 1;
+    if (setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK , &on, sizeof(on)) < 0) {
+        warn("setsockopt quickack");
         return -1;
     }
 
