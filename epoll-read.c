@@ -25,15 +25,17 @@ volatile sig_atomic_t has_alarm = 0;
 struct timeval start_time;
 long readable_servers = 0;
 long n_wakeup         = 0;
+struct timeval prev_time;
 
 int usage(void)
 {
     char *message =
-"Usage: ./epoll-read [-b bufsize] [-l lowat] [-r so_rcvbuf] [-d] ip_address:port [ip_address:port ...]\n"
+"Usage: ./epoll-read [-b bufsize] [-l lowat] [-r so_rcvbuf] [-d] [-i interval_sec] ip_address:port [ip_address:port ...]\n"
 "       -b bufsize: default 2MB\n"
 "       -d: debug\n"
 "       -l: lowat (default none.  allow suffix k for kilo, m for mega)\n"
 "       -r: so_rcvbuf (set SO_RCVBUF.  allow suffix k  for kilo, m for mega)\n"
+"       -i: interval_sec (default 1.0.  allow decimal number such as 0.5)\n"
 "example:\n"
 "./epoll-read 192.168.10.16:24 192.168.10.17:24\n";
     fprintf(stderr, message);
@@ -62,15 +64,17 @@ int print_status()
 {
     host_info *p;
     struct timeval now;
-    struct timeval elapse;
+    struct timeval elapse, interval;
     gettimeofday(&now, NULL);
     timersub(&now, &start_time, &elapse);
+    timersub(&now, &prev_time, &interval);
     fprintf(stderr, "%ld.%06ld ", elapse.tv_sec, elapse.tv_usec);
 
     long total_read_bytes = 0;
+    double interval_sec = interval.tv_sec + 0.000001*interval.tv_usec;
     for (p = host_list; p != NULL; p = p->next) {
         total_read_bytes += p->read_bytes;
-        double read_bytes_MB = (double) p->read_bytes / 1024.0 / 1024.0;
+        double read_bytes_MB = (double) p->read_bytes / interval_sec / 1024.0 / 1024.0;
         fprintf(stderr, "%9.3f ( %d ) ", read_bytes_MB, p->read_count);
         /* XXX */
         /* reset counter */
@@ -81,6 +85,7 @@ int print_status()
     double average_readable_servers = (double) readable_servers / (double) n_wakeup;
     fprintf(stderr, " %6.3f", average_readable_servers);
     fprintf(stderr, "\n");
+    prev_time = now;
     return 0;
 }
 
@@ -98,10 +103,11 @@ int main(int argc, char *argv[])
     int so_rcvbuf = 0;
     int so_lowat  = 0;
     int bufsize = DEFAULT_BUFSIZE;
+    char *interval_sec_str = "1.0";
 
     print_command_line(stderr, argc, argv);
 
-    while ( (ch = getopt(argc, argv, "b:dhl:r:")) != -1) {
+    while ( (ch = getopt(argc, argv, "b:dhi:l:r:")) != -1) {
         switch (ch) {
             case 'd':
                 debug += 1;
@@ -112,6 +118,9 @@ int main(int argc, char *argv[])
             case 'h':
                 usage();
                 exit(0);
+            case 'i':
+                interval_sec_str = optarg;
+                break;
             case 'l':
                 so_lowat = get_num(optarg);
                 break;
@@ -157,8 +166,11 @@ int main(int argc, char *argv[])
     }
 
     my_signal(SIGALRM, sig_alarm);
-    set_timer(1, 0, 1, 0);
+    struct timeval interval;
+    conv_str2timeval(interval_sec_str, &interval);
+    set_timer(interval.tv_sec, interval.tv_usec, interval.tv_sec, interval.tv_usec);
     gettimeofday(&start_time, NULL);
+    prev_time = start_time;
 
     // print_status_header();
 
