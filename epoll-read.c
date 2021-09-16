@@ -28,16 +28,19 @@ long readable_servers = 0;
 long n_wakeup         = 0;
 struct timeval prev_time;
 
+int print_terse = 0;
+
 int usage(void)
 {
     char *message =
-"Usage: ./epoll-read [-b bufsize] [-c cpu_num] [-l lowat] [-r so_rcvbuf] [-d] [-i interval_sec] ip_address:port [ip_address:port ...]\n"
+"Usage: ./epoll-read [-b bufsize] [-c cpu_num] [-l lowat] [-r so_rcvbuf] [-d] [-i interval_sec] [-T] ip_address:port [ip_address:port ...]\n"
 "       -b bufsize: default 2MB\n"
 "       -c cpu_num: set cpu number\n"
 "       -d: debug\n"
 "       -l: lowat (default none.  allow suffix k for kilo, m for mega)\n"
 "       -r: so_rcvbuf (set SO_RCVBUF.  allow suffix k  for kilo, m for mega)\n"
 "       -i: interval_sec (default 1.0.  allow decimal number such as 0.5)\n"
+"       -T: print terse result\n"
 "example:\n"
 "./epoll-read 192.168.10.16:24 192.168.10.17:24\n";
     fprintf(stderr, message);
@@ -83,16 +86,28 @@ int print_status()
         fprintf(stderr, " %.3f", read_bits_Gb_s);
     }
 
-    fprintf(stderr, " MB/s:");
-    for (p = host_list; p != NULL; p = p->next) {
-        double read_bytes_MB_s = (double) p->read_bytes / interval_sec / 1024.0 / 1024.0;
-        fprintf(stderr, " %.3f", read_bytes_MB_s);
+    if (!print_terse) {
+        fprintf(stderr, " MB/s:");
+        for (p = host_list; p != NULL; p = p->next) {
+            double read_bytes_MB_s = (double) p->read_bytes / interval_sec / 1024.0 / 1024.0;
+            fprintf(stderr, " %.3f", read_bytes_MB_s);
+        }
+
+        fprintf(stderr, " read_count:");
+        for (p = host_list; p != NULL; p = p->next) {
+            fprintf(stderr, " %d", p->read_count);
+        }
     }
 
-    fprintf(stderr, " read_count:");
-    for (p = host_list; p != NULL; p = p->next) {
-        fprintf(stderr, " %d", p->read_count);
+    if (!print_terse) {
+        double total_read_bytes_MB_s = total_read_bytes / 1024.0 / 1024.0 / interval_sec;
+        double total_read_bits_Gb_s = MiB2Gb(total_read_bytes_MB_s);
+        fprintf(stderr, " total: %.3f Gbps %.3f MB/s", total_read_bits_Gb_s, total_read_bytes_MB_s);
+        double average_readable_servers = (double) readable_servers / (double) n_wakeup;
+        fprintf(stderr, " readable_hosts: %.3f", average_readable_servers);
     }
+
+    fprintf(stderr, "\n");
 
     for (p = host_list; p != NULL; p = p->next) {
         /* XXX */
@@ -100,13 +115,8 @@ int print_status()
         p->read_bytes = 0;
         p->read_count = 0;
     }
-    double total_read_bytes_MB_s = total_read_bytes / 1024.0 / 1024.0 / interval_sec;
-    double total_read_bits_Gb_s = MiB2Gb(total_read_bytes_MB_s);
-    fprintf(stderr, " total: %.3f Gbps %.3f MB/s", total_read_bits_Gb_s, total_read_bytes_MB_s);
-    double average_readable_servers = (double) readable_servers / (double) n_wakeup;
-    fprintf(stderr, " readable_hosts: %.3f", average_readable_servers);
-    fprintf(stderr, "\n");
     prev_time = now;
+
     return 0;
 }
 
@@ -129,7 +139,7 @@ int main(int argc, char *argv[])
 
     print_command_line(stderr, argc, argv);
 
-    while ( (ch = getopt(argc, argv, "b:c:dhi:l:r:")) != -1) {
+    while ( (ch = getopt(argc, argv, "b:c:dhi:l:r:T")) != -1) {
         switch (ch) {
             case 'c':
                 cpu_num = strtol(optarg, NULL, 0);
@@ -151,6 +161,9 @@ int main(int argc, char *argv[])
                 break;
             case 'r':
                 so_rcvbuf = get_num(optarg);
+                break;
+            case 'T':
+                print_terse = 1;
                 break;
             default:
                 break;
