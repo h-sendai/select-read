@@ -74,11 +74,27 @@ int print_status()
 
     long total_read_bytes = 0;
     double interval_sec = interval.tv_sec + 0.000001*interval.tv_usec;
+
+    fprintf(stderr, " Gbps:");
     for (p = host_list; p != NULL; p = p->next) {
         total_read_bytes += p->read_bytes;
         double read_bytes_MB_s = (double) p->read_bytes / interval_sec / 1024.0 / 1024.0;
         double read_bits_Gb_s = MiB2Gb(read_bytes_MB_s);
-        fprintf(stderr, " %9.3f MB/s %.3f Gbps %d", read_bytes_MB_s, read_bits_Gb_s, p->read_count);
+        fprintf(stderr, " %.3f", read_bits_Gb_s);
+    }
+
+    fprintf(stderr, " MB/s:");
+    for (p = host_list; p != NULL; p = p->next) {
+        double read_bytes_MB_s = (double) p->read_bytes / interval_sec / 1024.0 / 1024.0;
+        fprintf(stderr, " %.3f", read_bytes_MB_s);
+    }
+
+    fprintf(stderr, " read_count:");
+    for (p = host_list; p != NULL; p = p->next) {
+        fprintf(stderr, " %d", p->read_count);
+    }
+
+    for (p = host_list; p != NULL; p = p->next) {
         /* XXX */
         /* reset counter */
         p->read_bytes = 0;
@@ -86,9 +102,9 @@ int print_status()
     }
     double total_read_bytes_MB_s = total_read_bytes / 1024.0 / 1024.0 / interval_sec;
     double total_read_bits_Gb_s = MiB2Gb(total_read_bytes_MB_s);
-    fprintf(stderr, "%12.3f MB/s %.3f Gbps", total_read_bytes_MB_s, total_read_bits_Gb_s);
+    fprintf(stderr, " total: %.3f Gbps %.3f MB/s", total_read_bits_Gb_s, total_read_bytes_MB_s);
     double average_readable_servers = (double) readable_servers / (double) n_wakeup;
-    fprintf(stderr, " %6.3f", average_readable_servers);
+    fprintf(stderr, " readable_hosts: %.3f", average_readable_servers);
     fprintf(stderr, "\n");
     prev_time = now;
     return 0;
