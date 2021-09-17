@@ -21,7 +21,7 @@ typedef struct host_info_tag host_info;
 typedef struct sockaddr SA;
 
 #define DEFAULT_PORT    24
-#define DEFAULT_BUFSIZE 128*1024; /* 128 kB */
+#define DEFAULT_BUFSIZE 2*1024*1024; /*  2 MB */
 
 /* Taken from "The Practice of Programming, Kernighan and Pike" */
 extern host_info *new_host(char *host_and_port, int bufsize);
