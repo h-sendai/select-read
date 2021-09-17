@@ -209,6 +209,12 @@ int main(int argc, char *argv[])
         }
     }
 
+    for (p = host_list; p != NULL; p = p->next) {
+        if (connect_tcp(p->sockfd, p->ip_address, p->port) < 0) {
+            errx(1, "connect to %s fail", p->ip_address);
+        }
+    }
+
     my_signal(SIGALRM, sig_alarm);
     struct timeval interval;
     conv_str2timeval(interval_sec_str, &interval);
@@ -217,12 +223,6 @@ int main(int argc, char *argv[])
     prev_time = start_time;
 
     // print_status_header();
-
-    for (p = host_list; p != NULL; p = p->next) {
-        if (connect_tcp(p->sockfd, p->ip_address, p->port) < 0) {
-            errx(1, "connect to %s fail", p->ip_address);
-        }
-    }
 
     /* EPOLL Data structure */
     if ( (ev_ret = malloc(sizeof(struct epoll_event) * n_server)) == NULL) {
