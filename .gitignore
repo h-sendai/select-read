@@ -2,4 +2,4 @@
 *.o
 *.d
 *~
-epoll-read
+select-read
