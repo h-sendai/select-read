@@ -103,8 +103,14 @@ int print_status()
         double total_read_bytes_MB_s = total_read_bytes / 1024.0 / 1024.0 / interval_sec;
         double total_read_bits_Gb_s = MiB2Gb(total_read_bytes_MB_s);
         fprintf(stderr, " total: %.3f Gbps %.3f MB/s", total_read_bits_Gb_s, total_read_bytes_MB_s);
-        double average_readable_servers = (double) readable_servers / (double) n_wakeup;
-        fprintf(stderr, " readable_hosts: %.3f", average_readable_servers);
+        if (n_wakeup != 0) {
+            double average_readable_servers = (double) readable_servers / (double) n_wakeup;
+            fprintf(stderr, " readable_hosts: %.3f", average_readable_servers);
+        }
+        else {
+            fprintf(stderr, " readable_hosts: %.3f", 0.0);
+        }
+            
     }
 
     fprintf(stderr, "\n");
