@@ -1,5 +1,5 @@
 #include <sys/types.h>
-#include <sys/epoll.h>
+#include <sys/select.h>
 #include <sys/time.h>
 
 #include <netinet/in.h>
@@ -33,7 +33,7 @@ int print_terse = 0;
 int usage(void)
 {
     char *message =
-"Usage: ./epoll-read [-b bufsize] [-c cpu_num] [-l lowat] [-r so_rcvbuf] [-d] [-i interval_sec] [-T] ip_address:port [ip_address:port ...]\n"
+"Usage: ./select-read [-b bufsize] [-c cpu_num] [-l lowat] [-r so_rcvbuf] [-d] [-i interval_sec] [-T] ip_address:port [ip_address:port ...]\n"
 "       -b bufsize: default 2MB\n"
 "       -c cpu_num: set cpu number\n"
 "       -d: debug\n"
@@ -42,7 +42,7 @@ int usage(void)
 "       -i: interval_sec (default 1.0.  allow decimal number such as 0.5)\n"
 "       -T: print terse result\n"
 "example:\n"
-"./epoll-read 192.168.10.16:24 192.168.10.17:24\n";
+"./select-read 192.168.10.16:24 192.168.10.17:24\n";
     fprintf(stderr, message);
     return 0;
 }
@@ -133,10 +133,6 @@ int main(int argc, char *argv[])
     int timeout = 2;
     int n_server;
 
-    int epfd;
-    int nfds;
-    struct epoll_event ev, *ev_ret;
-
     int so_rcvbuf = 0;
     int so_lowat  = 0;
     int bufsize = DEFAULT_BUFSIZE;
@@ -200,10 +196,12 @@ int main(int argc, char *argv[])
         host_list = addend(host_list, new_host(argv[i], bufsize));
     }
 
+    int max_sockfd = 0;
     for (p = host_list; p != NULL; p = p->next) {
         if ( (p->sockfd = tcp_socket()) < 0) {
             errx(1, "socket create fail");
         }
+        max_sockfd = p->sockfd;
         if (so_rcvbuf > 0) {
             if (set_so_rcvbuf(p->sockfd, so_rcvbuf) < 0) {
                 errx(1, "set_so_rcvbuf fail");
@@ -230,22 +228,17 @@ int main(int argc, char *argv[])
 
     // print_status_header();
 
-    /* EPOLL Data structure */
-    if ( (ev_ret = malloc(sizeof(struct epoll_event) * n_server)) == NULL) {
-        err(1, "malloc for epoll_event data structure");
+    /* select fd set */
+    fd_set rset, allset;
+    FD_ZERO(&rset);
+    FD_ZERO(&allset);
+    for (p = host_list; p != NULL; p = p->next) {
+        FD_SET(p->sockfd, &allset);
     }
-    if ( (epfd = epoll_create(n_server)) < 0) {
-        err(1, "epoll_create");
-    }
+
     for (p = host_list; p != NULL; p = p->next) {
         if (debug) {
             fprintf(stderr, "%s port %d\n", p->ip_address, p->port);
-        }
-        memset(&ev, 0, sizeof(ev));
-        ev.events = EPOLLIN;
-        ev.data.ptr = p;
-        if (epoll_ctl(epfd, EPOLL_CTL_ADD, p->sockfd, &ev) < 0) {
-            err(1, "XXX epoll_ctl at %s port %d", p->ip_address, p->port);
         }
     }
 
@@ -264,48 +257,52 @@ int main(int argc, char *argv[])
             readable_servers = 0;
             n_wakeup = 0;
         }
-        nfds = epoll_wait(epfd, ev_ret, n_server, timeout * 1000);
+
+        rset = allset;
+        /* do select() */
+        int nfds = select(max_sockfd + 1, &rset, NULL, NULL, NULL);
         if (nfds < 0) {
             if (errno == EINTR) {
                 continue;
             }
             else {
-                err(1, "epoll_wait");
+                err(1, "select");
             }
         }
         else if (nfds == 0) {
-            fprintf(stderr, "epoll_wait timed out: %d sec\n", timeout);
+            fprintf(stderr, "select timed out: %d sec\n", timeout);
             continue;
         }
 
         n_wakeup += 1;
         readable_servers += nfds;
-        for (i = 0; i < nfds; i++) {
-            p = ev_ret[i].data.ptr;
-            if (debug) { /* SO_RCVLOW Test */
-                fprintf(stderr, "n_wakeup: %ld %d bytes in rcvbuf\n", n_wakeup, get_bytes_in_rcvbuf(p->sockfd));
-            }
-            n = read(p->sockfd, p->buf, p->bufsize);
-            if (n < 0) {
-                err(1, "read error");
-            }
-            else if (n == 0) {
-                epoll_ctl(epfd, EPOLL_CTL_DEL, p->sockfd, NULL);
-                if (close(p->sockfd) < 0) {
-                    err(1, "close on %s", p->ip_address);
+        for (p = host_list; p != NULL; p = p->next) {
+            if (FD_ISSET(p->sockfd, &rset)) {
+                if (debug) { /* SO_RCVLOW Test */
+                    fprintf(stderr, "n_wakeup: %ld %d bytes in rcvbuf\n", n_wakeup, get_bytes_in_rcvbuf(p->sockfd));
                 }
-                n_server --;
-                if (n_server == 0) {
-                    exit(0);
+                n = read(p->sockfd, p->buf, p->bufsize);
+                if (n < 0) {
+                    err(1, "read error");
                 }
-            }
-            else {
-                p->read_bytes += n;
-                p->read_count ++;
-                if (debug > 1) {
-                    if ((p->read_count % 1000) == 0) {
-                        fprintf(stderr, "%s port %d: %ld bytes\n",
-                            p->ip_address, p->port, p->read_bytes);
+                else if (n == 0) {
+                    FD_CLR(p->sockfd, &allset);
+                    if (close(p->sockfd) < 0) {
+                        err(1, "close on %s", p->ip_address);
+                    }
+                    n_server --;
+                    if (n_server == 0) {
+                        exit(0);
+                    }
+                }
+                else {
+                    p->read_bytes += n;
+                    p->read_count ++;
+                    if (debug > 1) {
+                        if ((p->read_count % 1000) == 0) {
+                            fprintf(stderr, "%s port %d: %ld bytes\n",
+                                p->ip_address, p->port, p->read_bytes);
+                        }
                     }
                 }
             }
