@@ -1,4 +1,4 @@
-# epoll-read
+# select-read
 
 複数台のSiTCP機器の読み取りテスト用プログラムです。
 
@@ -7,7 +7,7 @@
 
 ## 使い方
 
-    ./epoll-read 192.168.10.16:24 [ more IP address and port ]
+    ./select-read 192.168.10.16:24 [ more IP address and port ]
 
 ## 出力サンプル
 
